@@ -1,0 +1,1 @@
+Today, I built a bot for daily journaling and saved it on GitHub without relying on AI coding agents. While I did receive assistance from chatbots for certain parts, the code is largely my own - it's almost a semi-homemade vibe.
