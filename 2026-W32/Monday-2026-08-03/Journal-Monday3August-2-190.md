@@ -1,0 +1,1 @@
+this is the url of the repo i was talking about in the previose commit (Journal-Monday3August-1-186.md) : https://github.com/YaserZarifi/youtube_Shorts_bot
