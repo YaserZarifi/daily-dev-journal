@@ -1,0 +1,46 @@
+---
+// 1. We tell Astro to grab every Markdown file using the modern Vite engine
+const posts = Object.values(import.meta.glob('../../week/**/*.md', { eager: true }));
+
+// 2. We sort them by date so your newest journal entries appear at the top
+const sortedPosts = posts.sort((a: any, b: any) => {
+  const dateA = a.frontmatter?.date ? new Date(a.frontmatter.date).valueOf() : 0;
+  const dateB = b.frontmatter?.date ? new Date(b.frontmatter.date).valueOf() : 0;
+  return dateB - dateA;
+});
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Developer Journal</title>
+  </head>
+  <body style="font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; background: #0a0a0a; color: #eaeaea;">
+
+    <header style="margin-bottom: 3rem; text-align: center;">
+      <h1 style="background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        My Digital Brain
+      </h1>
+      <p>Automated deployments from Telegram.</p>
+    </header>
+
+    <main style="display: flex; flex-direction: column; gap: 2rem;">
+      {sortedPosts.map((post: any) => (
+        <article style="border: 1px solid #333; padding: 2rem; border-radius: 12px; background: #111;">
+          <div style="margin-bottom: 1rem; border-bottom: 1px solid #333; padding-bottom: 1rem;">
+            <h2 style="margin: 0; font-size: 1.2rem; color: #888;">
+              {post.frontmatter?.date || "Unknown Date"} {post.frontmatter?.mood && `— ${post.frontmatter.mood}`}
+            </h2>
+          </div>
+
+          <!-- This single line tells Astro to render the Markdown as HTML! -->
+          <div style="line-height: 1.6;">
+            <post.Content />
+          </div>
+        </article>
+      ))}
+    </main>
+
+  </body>
+</html>
