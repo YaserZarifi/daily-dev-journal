@@ -1,0 +1,57 @@
+---
+import type { Week } from '../lib/journal';
+import DayRow from './DayRow.astro';
+
+interface Props {
+  week: Week;
+}
+const { week } = Astro.props;
+
+const weekNum = week.week.split('-W')[1];
+const year = week.week.split('-W')[0];
+---
+
+<section class="week">
+  <div class="week-divider">
+    <span class="label">Week {weekNum} · {year}</span>
+    <span class="rule"></span>
+    <span class="count">{week.entryCount} {week.entryCount === 1 ? 'entry' : 'entries'}</span>
+  </div>
+
+  <div class="days">
+    {week.days.map((day, i) => (
+      <DayRow day={day} isLast={i === week.days.length - 1} />
+    ))}
+  </div>
+</section>
+
+<style>
+  .week {
+    margin-bottom: 1rem;
+  }
+
+  .week-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1.75rem;
+  }
+  .label {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+  }
+  .rule {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .count {
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+  }
+</style>

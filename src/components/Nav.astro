@@ -1,0 +1,47 @@
+---
+---
+
+<nav class="site-nav">
+  <span class="wordmark">daily-dev-journal</span>
+  <div class="links">
+    <a href="#overview">Overview</a>
+    <a href="#log">Log</a>
+  </div>
+</nav>
+
+<style>
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 1rem 1.5rem;
+    background: rgba(11, 15, 20, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  .links {
+    display: flex;
+    gap: 1.5rem;
+  }
+  .links a {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+  .links a:hover {
+    color: var(--accent);
+    text-decoration: none;
+  }
+</style>

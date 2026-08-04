@@ -1,6 +1,9 @@
 # build output
 dist/
 
+# mirrored by scripts/copy-assets.mjs on every dev/build run — not source
+public/assets/
+
 # generated types
 .astro/
 

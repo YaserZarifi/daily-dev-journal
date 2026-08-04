@@ -1,0 +1,55 @@
+---
+import type { Entry } from '../lib/journal';
+
+interface Props {
+  entry: Entry;
+  index: number;
+}
+const { entry, index } = Astro.props;
+---
+
+<article class="entry">
+  <div class="entry-head">
+    <span class="entry-index">#{index}</span>
+    <h3>{entry.title}</h3>
+  </div>
+  <div class="entry-prose" set:html={entry.html} />
+</article>
+
+<style>
+  .entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem 1.6rem;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .entry:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-hover);
+  }
+
+  .entry-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    margin-bottom: 0.9rem;
+  }
+  .entry-index {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 4px;
+    padding: 0.1em 0.45em;
+    flex-shrink: 0;
+  }
+  h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+</style>

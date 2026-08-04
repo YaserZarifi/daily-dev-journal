@@ -1,0 +1,92 @@
+---
+import type { Day } from '../lib/journal';
+import EntryCard from './EntryCard.astro';
+
+interface Props {
+  day: Day;
+  isLast: boolean;
+}
+const { day, isLast } = Astro.props;
+
+const formatted = new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
+  weekday: 'long',
+  month: 'short',
+  day: 'numeric',
+});
+---
+
+<div class="day-row">
+  <div class="rail">
+    <span class="dot"></span>
+    {!isLast && <span class="line"></span>}
+  </div>
+
+  <div class="day-content">
+    <div class="day-label">
+      <span class="date">{formatted}</span>
+      <span class="count">{day.entries.length} {day.entries.length === 1 ? 'entry' : 'entries'}</span>
+    </div>
+
+    <div class="entries">
+      {day.entries.map((entry, i) => (
+        <EntryCard entry={entry} index={day.entries.length - i} />
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .day-row {
+    display: grid;
+    grid-template-columns: 1.4rem 1fr;
+    gap: 1.25rem;
+  }
+
+  .rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    margin-top: 0.4rem;
+    flex-shrink: 0;
+  }
+  .line {
+    flex: 1;
+    width: 1px;
+    background: var(--border);
+    margin-top: 0.5rem;
+  }
+
+  .day-content {
+    padding-bottom: 2.75rem;
+  }
+
+  .day-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+  }
+  .date {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+  .count {
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+  }
+
+  .entries {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+</style>

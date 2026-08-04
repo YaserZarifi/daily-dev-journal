@@ -1,28 +1,19 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Nav from '../components/Nav.astro';
 import Hero from '../components/Hero.astro';
-import StatsSection from '../components/StatsSection.astro';
 import WeekSection from '../components/WeekSection.astro';
-import { getEntries, groupByDay, groupByWeek, getStats } from '../lib/journal';
+import { getEntries, groupByDay, groupByWeek } from '../lib/journal';
 
 const entries = getEntries();
 const days = groupByDay(entries);
 const weeks = groupByWeek(days);
-const stats = getStats(days);
+const lastDate = days[0]?.date ?? null;
 ---
 
 <Layout>
-  <Nav />
-  <Hero />
-  <StatsSection stats={stats} />
+  <Hero entryCount={entries.length} weekCount={weeks.length} lastDate={lastDate} />
 
-  <main id="log" class="log">
-    <div class="section-label">
-      <span class="label">Log</span>
-      <span class="rule"></span>
-    </div>
-
+  <main class="log">
     {weeks.length === 0 ? (
       <div class="empty">
         <p><span class="prompt-sign">$</span> No entries found yet.</p>
@@ -46,26 +37,6 @@ const stats = getStats(days);
     max-width: var(--max-width);
     margin: 0 auto;
     padding: 0 1.5rem 2rem;
-  }
-
-  .section-label {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    margin-bottom: 1.75rem;
-  }
-  .label {
-    font-family: var(--font-display);
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-tertiary);
-    white-space: nowrap;
-  }
-  .rule {
-    flex: 1;
-    height: 1px;
-    background: var(--border);
   }
 
   .empty {

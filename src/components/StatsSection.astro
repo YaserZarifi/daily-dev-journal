@@ -1,0 +1,235 @@
+---
+import type { Stats } from '../lib/journal';
+
+interface Props {
+  stats: Stats;
+}
+const { stats } = Astro.props;
+
+// Arrange the 84-day heatmap into 12 columns of 7 (oldest -> newest, left to right).
+const columns: { date: string; count: number }[][] = [];
+for (let i = 0; i < stats.heatmap.length; i += 7) {
+  columns.push(stats.heatmap.slice(i, i + 7));
+}
+
+function level(count: number): string {
+  if (count === 0) return '0';
+  if (count === 1) return '1';
+  if (count <= 3) return '2';
+  return '3';
+}
+---
+
+<section id="overview" class="overview">
+  <div class="section-label">
+    <span class="label">Overview</span>
+    <span class="rule"></span>
+  </div>
+
+  <div class="grid">
+    <div class="streak-card">
+      <span class="eyebrow">Current streak</span>
+      <div class="streak-number">
+        {stats.currentStreak}
+        <span class="unit">{stats.currentStreak === 1 ? 'day' : 'days'}</span>
+      </div>
+      <div class="streak-sub">Best run: {stats.longestStreak} {stats.longestStreak === 1 ? 'day' : 'days'}</div>
+    </div>
+
+    <div class="heatmap-card">
+      <span class="eyebrow">Last 12 weeks</span>
+      <div class="heatmap" role="img" aria-label={`Activity over the last 84 days, current streak ${stats.currentStreak} days`}>
+        {columns.map((col) => (
+          <div class="heatmap-col">
+            {col.map((cell) => (
+              <span class={`heatmap-cell level-${level(cell.count)}`} title={`${cell.date}: ${cell.count} ${cell.count === 1 ? 'entry' : 'entries'}`}></span>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div class="heatmap-legend">
+        <span>Less</span>
+        <span class="heatmap-cell level-0"></span>
+        <span class="heatmap-cell level-1"></span>
+        <span class="heatmap-cell level-2"></span>
+        <span class="heatmap-cell level-3"></span>
+        <span>More</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile">
+      <dt>Total entries</dt>
+      <dd>{stats.totalEntries}</dd>
+    </div>
+    <div class="tile">
+      <dt>Weeks logged</dt>
+      <dd>{stats.totalWeeks}</dd>
+    </div>
+    <div class="tile">
+      <dt>Avg. per active day</dt>
+      <dd>{stats.avgPerActiveDay}</dd>
+    </div>
+    <div class="tile">
+      <dt>Most active day</dt>
+      <dd>{stats.mostActiveWeekday}</dd>
+    </div>
+  </div>
+</section>
+
+<style>
+  .overview {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem 3.5rem;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+  .label {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+  }
+  .rule {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .streak-card,
+  .heatmap-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem 1.6rem;
+  }
+
+  .eyebrow {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    margin-bottom: 0.9rem;
+  }
+
+  .streak-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .streak-number {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .streak-number .unit {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-left: 0.4rem;
+  }
+  .streak-sub {
+    margin-top: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .heatmap {
+    display: flex;
+    gap: 3px;
+  }
+  .heatmap-col {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .heatmap-cell {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+  }
+  .level-1 {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+  }
+  .level-2 {
+    background: rgba(242, 184, 75, 0.45);
+    border-color: var(--accent-line);
+  }
+  .level-3 {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 1rem;
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+  }
+  .heatmap-legend .heatmap-cell {
+    width: 10px;
+    height: 10px;
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.2rem;
+  }
+  .tile dt {
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    margin-bottom: 0.4rem;
+  }
+  .tile dd {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  @media (max-width: 640px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+    .tiles {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .heatmap {
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+    }
+  }
+</style>
