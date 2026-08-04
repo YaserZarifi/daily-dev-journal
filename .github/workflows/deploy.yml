@@ -24,6 +24,8 @@ jobs:
 
       - name: Install, build, and upload site
         uses: withastro/action@v3
+        with:
+          node-version: 22
         # Astro's official action detects your package manager, runs
         # `npm install` + `npm run build` (which triggers prebuild ->
         # copy-assets.mjs automatically), and uploads dist/ as a Pages artifact.
