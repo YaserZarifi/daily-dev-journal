@@ -12,20 +12,20 @@ for (let i = 0; i < stats.heatmap.length; i += 7) {
   columns.push(stats.heatmap.slice(i, i + 7));
 }
 
-// Scale levels relative to your own busiest day, not fixed counts — otherwise
-// a handful of active days all look identically "full."
-const maxCount = Math.max(1, ...stats.heatmap.map((c) => c.count));
 // "Today" = the most recent day the heatmap actually has data for, not the
 // build server's clock — this page rebuilds on every commit, so the last
 // entry in the array is effectively "now" and avoids timezone drift.
 const today = stats.heatmap.at(-1)?.date ?? '';
 
-function level(count: number): string {
-  if (count === 0) return '0';
-  const ratio = count / maxCount;
-  if (ratio <= 0.25) return '1';
-  if (ratio <= 0.6) return '2';
-  return '3';
+// Fixed 1–40 scale (not relative to your busiest day), so the same count
+// always renders the same shade build to build. sqrt curve spreads out the
+// low-to-mid range instead of a linear scale bunching everything past ~15
+// visually together.
+const SCALE_MAX = 40;
+function intensity(count: number): number {
+  if (count === 0) return 0;
+  const t = Math.sqrt(Math.min(count, SCALE_MAX) / SCALE_MAX);
+  return 0.16 + t * 0.84; // 0.16 (barely-there) -> 1.0 (full accent)
 }
 ---
 
@@ -52,7 +52,8 @@ function level(count: number): string {
           <div class="heatmap-col">
             {col.map((cell) => (
               <span
-                class={`heatmap-cell level-${level(cell.count)}${cell.date === today ? ' is-today' : ''}`}
+                class={`heatmap-cell${cell.count === 0 ? ' is-empty' : ''}${cell.date === today ? ' is-today' : ''}`}
+                style={cell.count > 0 ? `--fill: rgba(242, 184, 75, ${intensity(cell.count).toFixed(3)})` : undefined}
                 title={`${cell.date}: ${cell.count} ${cell.count === 1 ? 'entry' : 'entries'}`}
               ></span>
             ))}
@@ -61,10 +62,11 @@ function level(count: number): string {
       </div>
       <div class="heatmap-legend">
         <span>Less</span>
-        <span class="heatmap-cell level-0"></span>
-        <span class="heatmap-cell level-1"></span>
-        <span class="heatmap-cell level-2"></span>
-        <span class="heatmap-cell level-3"></span>
+        <span class="heatmap-cell"></span>
+        <span class="heatmap-cell" style={`--fill: rgba(242, 184, 75, ${intensity(1).toFixed(3)})`}></span>
+        <span class="heatmap-cell" style={`--fill: rgba(242, 184, 75, ${intensity(10).toFixed(3)})`}></span>
+        <span class="heatmap-cell" style={`--fill: rgba(242, 184, 75, ${intensity(25).toFixed(3)})`}></span>
+        <span class="heatmap-cell" style={`--fill: rgba(242, 184, 75, ${intensity(40).toFixed(3)})`}></span>
         <span>More</span>
       </div>
     </div>
@@ -181,20 +183,11 @@ function level(count: number): string {
     width: 100%;
     aspect-ratio: 1 / 1;
     border-radius: 2px;
-    background: var(--bg-elevated);
+    background: var(--fill, var(--bg-elevated));
     border: 1px solid var(--border);
   }
-  .level-1 {
-    background: rgba(242, 184, 75, 0.28);
+  .heatmap-cell:not(.is-empty) {
     border-color: var(--accent-line);
-  }
-  .level-2 {
-    background: rgba(242, 184, 75, 0.55);
-    border-color: var(--accent-line);
-  }
-  .level-3 {
-    background: var(--accent);
-    border-color: var(--accent);
   }
 
   .heatmap-cell.is-today {
