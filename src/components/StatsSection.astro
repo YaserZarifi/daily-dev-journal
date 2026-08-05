@@ -18,14 +18,41 @@ for (let i = 0; i < stats.heatmap.length; i += 7) {
 const today = stats.heatmap.at(-1)?.date ?? '';
 
 // Fixed 1–40 scale (not relative to your busiest day), so the same count
-// always renders the same shade build to build. sqrt curve spreads out the
+// always renders the same color build to build. sqrt curve spreads out the
 // low-to-mid range instead of a linear scale bunching everything past ~15
 // visually together.
 const SCALE_MAX = 40;
-function intensity(count: number): number {
-  if (count === 0) return 0;
+const GRADIENT: { t: number; rgb: [number, number, number] }[] = [
+  { t: 0, rgb: [255, 250, 240] }, // white
+  { t: 0.5, rgb: [247, 197, 32] }, // yellow
+  { t: 1, rgb: [214, 39, 30] }, // red
+];
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+function colorFor(count: number): { fill: string; border: string } | null {
+  if (count === 0) return null;
   const t = Math.sqrt(Math.min(count, SCALE_MAX) / SCALE_MAX);
-  return 0.16 + t * 0.84; // 0.16 (barely-there) -> 1.0 (full accent)
+
+  let lower = GRADIENT[0];
+  let upper = GRADIENT[GRADIENT.length - 1];
+  for (let i = 0; i < GRADIENT.length - 1; i++) {
+    if (t >= GRADIENT[i].t && t <= GRADIENT[i + 1].t) {
+      lower = GRADIENT[i];
+      upper = GRADIENT[i + 1];
+      break;
+    }
+  }
+  const localT = (t - lower.t) / (upper.t - lower.t || 1);
+  const rgb = lower.rgb.map((c, i) => Math.round(lerp(c, upper.rgb[i], localT))) as [number, number, number];
+  const border = rgb.map((c) => Math.max(0, Math.round(c * 0.65))) as [number, number, number];
+
+  return {
+    fill: `rgb(${rgb.join(', ')})`,
+    border: `rgb(${border.join(', ')})`,
+  };
 }
 ---
 
@@ -50,23 +77,30 @@ function intensity(count: number): number {
       <div class="heatmap" role="img" aria-label={`Activity over the last 84 days, current streak ${stats.currentStreak} days`}>
         {columns.map((col) => (
           <div class="heatmap-col">
-            {col.map((cell) => (
-              <span
-                class={`heatmap-cell${cell.count === 0 ? ' is-empty' : ''}${cell.date === today ? ' is-today' : ''}`}
-                style={cell.count > 0 ? `--fill: rgba(242, 184, 75, ${intensity(cell.count).toFixed(3)})` : undefined}
-                title={`${cell.date}: ${cell.count} ${cell.count === 1 ? 'entry' : 'entries'}`}
-              ></span>
-            ))}
+            {col.map((cell) => {
+              const color = colorFor(cell.count);
+              return (
+                <span
+                  class={`heatmap-cell${cell.count === 0 ? ' is-empty' : ''}${cell.date === today ? ' is-today' : ''}`}
+                  style={color ? `--fill: ${color.fill}; --fill-border: ${color.border}` : undefined}
+                  title={`${cell.date}: ${cell.count} ${cell.count === 1 ? 'entry' : 'entries'}`}
+                ></span>
+              );
+            })}
           </div>
         ))}
       </div>
       <div class="heatmap-legend">
         <span>Less</span>
-        <span class="heatmap-cell"></span>
-        <span class="heatmap-cell" style={`--fill: rgba(242, 184, 75, ${intensity(1).toFixed(3)})`}></span>
-        <span class="heatmap-cell" style={`--fill: rgba(242, 184, 75, ${intensity(10).toFixed(3)})`}></span>
-        <span class="heatmap-cell" style={`--fill: rgba(242, 184, 75, ${intensity(25).toFixed(3)})`}></span>
-        <span class="heatmap-cell" style={`--fill: rgba(242, 184, 75, ${intensity(40).toFixed(3)})`}></span>
+        {[0, 1, 10, 20, 30, 40].map((n) => {
+          const color = colorFor(n);
+          return (
+            <span
+              class="heatmap-cell"
+              style={color ? `--fill: ${color.fill}; --fill-border: ${color.border}` : undefined}
+            ></span>
+          );
+        })}
         <span>More</span>
       </div>
     </div>
@@ -184,10 +218,7 @@ function intensity(count: number): number {
     aspect-ratio: 1 / 1;
     border-radius: 2px;
     background: var(--fill, var(--bg-elevated));
-    border: 1px solid var(--border);
-  }
-  .heatmap-cell:not(.is-empty) {
-    border-color: var(--accent-line);
+    border: 1px solid var(--fill-border, var(--border));
   }
 
   .heatmap-cell.is-today {
