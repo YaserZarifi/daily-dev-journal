@@ -124,8 +124,12 @@ export interface Stats {
 }
 
 function addDays(dateStr: string, delta: number): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + delta);
+  // Parse and mutate in UTC explicitly — without the "Z" and UTC setters,
+  // this shifts by a day whenever the build machine's local timezone has a
+  // positive UTC offset (e.g. UTC+4:30), silently corrupting endDate and
+  // streak-continuity checks.
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + delta);
   return d.toISOString().slice(0, 10);
 }
 
