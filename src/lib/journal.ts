@@ -121,6 +121,71 @@ export function groupByWeek(days: Day[]): Week[] {
     .sort((a, b) => b.week.localeCompare(a.week));
 }
 
+// Maps a mood's text label (the emoji is stripped off) to a 1–5 valence so it
+// can be plotted on a trend line. Add new moods here as your bot introduces
+// them — anything not listed falls back to a neutral 3 rather than guessing.
+const MOOD_VALENCE: Record<string, number> = {
+  ecstatic: 5,
+  thrilled: 5,
+  excited: 5,
+  happy: 5,
+  motivated: 5,
+  accomplished: 5,
+  proud: 5,
+  content: 4,
+  confident: 4,
+  satisfied: 4,
+  hopeful: 4,
+  inspired: 4,
+  neutral: 3,
+  reflective: 3,
+  curious: 3,
+  focused: 3,
+  calm: 3,
+  tired: 2,
+  bored: 2,
+  uncertain: 2,
+  anxious: 2,
+  overwhelmed: 2,
+  frustrated: 1,
+  stressed: 1,
+  sad: 1,
+  angry: 1,
+  discouraged: 1,
+};
+const DEFAULT_VALENCE = 3;
+
+function moodValence(mood: string): number {
+  const label = mood.replace(/^[^\p{L}]+/u, '').trim().toLowerCase();
+  return MOOD_VALENCE[label] ?? DEFAULT_VALENCE;
+}
+
+export interface MoodPoint {
+  date: string;
+  slug: string;
+  title: string;
+  mood: string;
+  value: number; // 1–5 valence
+}
+
+// One point per entry that has a mood set, oldest first — a per-entry trend
+// (rather than averaged per day/week) so a single busy, emotionally mixed
+// day still shows its actual swings instead of flattening into one dot.
+export function getMoodTrend(entries: Entry[]): MoodPoint[] {
+  return entries
+    .filter((e) => e.mood)
+    .map((e) => ({
+      date: e.date,
+      slug: e.slug,
+      title: e.title,
+      mood: e.mood,
+      value: moodValence(e.mood),
+      seq: e.seq,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq)
+    .map(({ seq, ...point }) => point);
+}
+
 export interface HeatmapCell {
   date: string;
   count: number;

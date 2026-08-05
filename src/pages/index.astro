@@ -3,15 +3,17 @@ import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Hero from '../components/Hero.astro';
 import StatsSection from '../components/StatsSection.astro';
+import MoodTrend from '../components/MoodTrend.astro';
 import WeekSection from '../components/WeekSection.astro';
 import TocNav from '../components/TocNav.astro';
 import BranchRiver from '../components/BranchRiver.astro';
-import { getEntries, groupByDay, groupByWeek, getStats } from '../lib/journal';
+import { getEntries, groupByDay, groupByWeek, getStats, getMoodTrend } from '../lib/journal';
 
 const entries = getEntries();
 const days = groupByDay(entries);
 const weeks = groupByWeek(days);
 const stats = getStats(days);
+const moodTrend = getMoodTrend(entries);
 
 const oldestEntry = entries.length ? entries[entries.length - 1] : null;
 const allMoods = [...new Set(entries.map((e) => e.mood).filter(Boolean))];
@@ -42,6 +44,7 @@ const searchIndex = entries.map((e) => ({
         latestEntryDate={entries[0]?.date}
       />
       <StatsSection stats={stats} />
+      <MoodTrend points={moodTrend} />
 
       <main id="log" class="log">
         <div class="section-label">

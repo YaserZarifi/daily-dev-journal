@@ -1,0 +1,204 @@
+---
+import type { MoodPoint } from '../lib/journal';
+
+interface Props {
+  points: MoodPoint[];
+}
+const { points } = Astro.props;
+
+const H = 220;
+const PAD_L = 34;
+const PAD_R = 20;
+const PAD_T = 18;
+const PAD_B = 28;
+const plotH = H - PAD_T - PAD_B;
+
+// Widen the chart (with horizontal scroll) rather than cramming points once
+// there are more than fit comfortably at a readable spacing.
+const MIN_STEP = 20;
+const CARD_WIDTH = 700;
+const W = Math.max(CARD_WIDTH, PAD_L + PAD_R + MIN_STEP * Math.max(points.length - 1, 0));
+const plotW = W - PAD_L - PAD_R;
+
+function yFor(value: number): number {
+  return PAD_T + plotH * (1 - (value - 1) / 4);
+}
+function xFor(i: number): number {
+  return points.length > 1 ? PAD_L + (plotW * i) / (points.length - 1) : PAD_L + plotW / 2;
+}
+
+const linePath = points
+  .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i).toFixed(1)} ${yFor(p.value).toFixed(1)}`)
+  .join(' ');
+const areaPath = points.length
+  ? `${linePath} L ${xFor(points.length - 1).toFixed(1)} ${(PAD_T + plotH).toFixed(1)} L ${xFor(0).toFixed(1)} ${(PAD_T + plotH).toFixed(1)} Z`
+  : '';
+
+const yTicks = [
+  { value: 5, label: 'Great' },
+  { value: 3, label: 'Neutral' },
+  { value: 1, label: 'Low' },
+];
+
+// Label only the first point of each new date, so a busy day doesn't repeat
+// its date once per entry.
+let lastDate = '';
+const xLabels = points
+  .map((p, i) => {
+    if (p.date === lastDate) return null;
+    lastDate = p.date;
+    return { i, date: p.date };
+  })
+  .filter((x): x is { i: number; date: string } => x !== null);
+
+function shortDate(dateStr: string): string {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function moodEmoji(mood: string): string {
+  return mood.match(/^\p{Extended_Pictographic}+/u)?.[0] ?? '•';
+}
+---
+
+<section id="mood" class="mood-section">
+  <div class="section-label">
+    <span class="label">Mood</span>
+    <span class="rule"></span>
+  </div>
+
+  <div class="mood-card">
+    {points.length === 0 ? (
+      <p class="mood-empty">No mood data yet — entries with a <code>mood</code> field will show up here.</p>
+    ) : (
+      <div class="mood-scroll thin-scroll">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          width={W}
+          height={H}
+          class="mood-chart"
+          role="img"
+          aria-label={`Mood trend across ${points.length} entries`}
+        >
+          {yTicks.map((t) => (
+            <g>
+              <line x1={PAD_L} y1={yFor(t.value)} x2={W - PAD_R} y2={yFor(t.value)} class="mood-gridline" />
+              <text x={PAD_L - 8} y={yFor(t.value)} class="mood-ytick">{t.label}</text>
+            </g>
+          ))}
+
+          {areaPath && <path d={areaPath} class="mood-area" />}
+          {points.length > 1 && <path d={linePath} class="mood-line" />}
+
+          {points.map((p, i) => (
+            <g class="mood-point">
+              <circle cx={xFor(i)} cy={yFor(p.value)} r="9" class="mood-marker"></circle>
+              <text x={xFor(i)} y={yFor(p.value)} class="mood-emoji">{moodEmoji(p.mood)}</text>
+              <title>{`${p.date} · ${p.mood} — ${p.title}`}</title>
+            </g>
+          ))}
+
+          {xLabels.map((l) => (
+            <text x={xFor(l.i)} y={H - 8} class="mood-xtick">{shortDate(l.date)}</text>
+          ))}
+        </svg>
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .mood-section {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem 3.5rem;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+  .label {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+  }
+  .rule {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .mood-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem 1.6rem;
+  }
+
+  .mood-empty {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+  }
+  .mood-empty code {
+    color: var(--accent);
+  }
+
+  .mood-scroll {
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+  }
+
+  .mood-chart {
+    display: block;
+    overflow: visible;
+  }
+
+  .mood-gridline {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  .mood-ytick {
+    font-family: var(--font-display);
+    font-size: 9px;
+    fill: var(--text-tertiary);
+    text-anchor: end;
+    dominant-baseline: middle;
+  }
+  .mood-xtick {
+    font-family: var(--font-display);
+    font-size: 9px;
+    fill: var(--text-tertiary);
+    text-anchor: middle;
+  }
+
+  .mood-area {
+    fill: var(--accent-soft);
+  }
+  .mood-line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  .mood-marker {
+    fill: var(--bg-elevated);
+    stroke: var(--accent);
+    stroke-width: 1.5;
+  }
+  .mood-emoji {
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .mood-point:hover .mood-marker {
+    stroke-width: 2.5;
+  }
+</style>
