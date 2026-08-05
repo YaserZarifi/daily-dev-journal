@@ -13,6 +13,11 @@
   --accent: #f2b84b;
   --accent-soft: rgba(242, 184, 75, 0.1);
   --accent-line: rgba(242, 184, 75, 0.4);
+
+  --branch: #6fb9a8;
+  --branch-soft: rgba(111, 185, 168, 0.12);
+  --branch-line: rgba(111, 185, 168, 0.4);
+  --diff-minus: #c9705a;
   --font-body: 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;;
   --font-display: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --font-body: 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;;
@@ -177,3 +182,14 @@ a:hover {
 .entry-prose a {
   text-underline-offset: 2px;
 }
+
+/* Scroll-reveal utility, applied via IntersectionObserver in index.astro */
+/* .reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+} */

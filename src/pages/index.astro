@@ -19,7 +19,11 @@ const allTags = [...new Set(entries.flatMap((e) => e.tags))].sort();
 
 <Layout>
   <Nav />
-  <Hero oldestEntrySlug={oldestEntry?.slug} />
+  <Hero
+    oldestEntrySlug={oldestEntry?.slug}
+    latestEntryTitle={entries[0]?.title}
+    latestEntryDate={entries[0]?.date}
+  />
   <StatsSection stats={stats} />
 
   {(allMoods.length > 0 || allTags.length > 0) && (

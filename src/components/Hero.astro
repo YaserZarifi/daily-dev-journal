@@ -1,13 +1,30 @@
 ---
 interface Props {
   oldestEntrySlug?: string;
+  latestEntryTitle?: string;
+  latestEntryDate?: string;
 }
-const { oldestEntrySlug } = Astro.props;
+const { oldestEntrySlug, latestEntryTitle, latestEntryDate } = Astro.props;
 ---
 
 <header class="hero">
-  <div class="prompt">
-    <span class="prompt-sign">$</span> tail -f daily-dev-journal/<span class="cursor">_</span>
+  <div class="terminal">
+    <div class="terminal-bar">
+      <span class="term-dot"></span>
+      <span class="term-dot"></span>
+      <span class="term-dot"></span>
+      <span class="terminal-title">daily-dev-journal — zsh</span>
+    </div>
+    <div class="terminal-body">
+      <div class="term-line">
+        <span class="prompt-sign">$</span> tail -f daily-dev-journal/<span class="cursor">_</span>
+      </div>
+      {latestEntryTitle && (
+        <div class="term-line term-output">
+          <span class="git-hash">{latestEntryDate}</span> {latestEntryTitle}
+        </div>
+      )}
+    </div>
   </div>
   <h1>Daily&nbsp;Dev&nbsp;Journal</h1>
   <p class="tagline">
@@ -41,11 +58,52 @@ const { oldestEntrySlug } = Astro.props;
     }
   }
 
-  .prompt {
+  .terminal {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.75rem;
+  }
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .term-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    opacity: 0.5;
+  }
+  .terminal-title {
+    margin-left: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+  }
+  .terminal-body {
+    padding: 0.9rem 1rem 1rem;
+  }
+  .term-line {
     font-family: var(--font-display);
     font-size: 0.8rem;
     color: var(--text-tertiary);
-    margin-bottom: 1.25rem;
+  }
+  .term-line + .term-line {
+    margin-top: 0.5rem;
+  }
+  .term-output {
+    color: var(--text-secondary);
+    padding-left: 1.1rem;
+  }
+  .git-hash {
+    color: var(--branch);
+    margin-right: 0.4rem;
   }
   .prompt-sign {
     color: var(--accent);
