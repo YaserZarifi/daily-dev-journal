@@ -12,6 +12,8 @@ export interface Entry {
   weekday: string;
   week: string; // e.g. "2026-W32"
   seq: number;
+  mood: string;
+  tags: string[];
 }
 
 export interface Day {
@@ -29,7 +31,11 @@ export interface Week {
 
 const modules = import.meta.glob('/2026-W*/**/Journal-*.md', { eager: true }) as Record<
   string,
-  { rawContent?: () => string; compiledContent?: () => string }
+  {
+    rawContent?: () => string;
+    compiledContent?: () => string;
+    frontmatter?: { mood?: string; tags?: string[] };
+  }
 >;
 
 const PATH_RE = /\/(\d{4}-W\d{2})\/([A-Za-z]+)-(\d{4}-\d{2}-\d{2})\/([^/]+)\.md$/;
@@ -55,6 +61,7 @@ export function getEntries(): Entry[] {
     const compiled = mod.compiledContent ? mod.compiledContent() : '';
     const seqMatch = filename.match(SEQ_RE);
     const seq = seqMatch ? parseInt(seqMatch[1], 10) : 0;
+    const frontmatter = mod.frontmatter ?? {};
 
     entries.push({
       path,
@@ -65,6 +72,8 @@ export function getEntries(): Entry[] {
       weekday,
       week,
       seq,
+      mood: frontmatter.mood ?? '',
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
     });
   }
 

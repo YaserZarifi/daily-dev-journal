@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:opsz,wght@14..32,400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:opsz,wght@14..32,400;500;600&family=Vazirmatn:wght@400;500;600;700&display=swap');
 
 :root {
   --bg: #0b0f14;
@@ -13,9 +13,9 @@
   --accent: #f2b84b;
   --accent-soft: rgba(242, 184, 75, 0.1);
   --accent-line: rgba(242, 184, 75, 0.4);
-
+  --font-body: 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;;
   --font-display: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;;
 
   --max-width: 46rem;
   color-scheme: dark;
@@ -27,6 +27,7 @@
 
 html {
   background: var(--bg);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -73,6 +74,19 @@ a:hover {
 .entry-prose {
   font-size: 0.975rem;
   color: var(--text);
+}
+
+/* Auto-detect text direction per block so Persian and English
+   paragraphs never get mixed into the wrong alignment/direction. */
+.entry-prose p,
+.entry-prose li,
+.entry-prose h1,
+.entry-prose h2,
+.entry-prose h3,
+.entry-prose h4,
+.entry-prose blockquote {
+  unicode-bidi: plaintext;
+  font-family: var(--font-body);
 }
 
 .entry-prose > *:first-child {

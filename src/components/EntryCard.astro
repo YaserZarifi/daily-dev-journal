@@ -8,11 +8,17 @@ interface Props {
 const { entry, index } = Astro.props;
 ---
 
-<article class="entry">
+<article class="entry" id={`entry-${entry.slug}`} data-tags={entry.tags.join(',')} data-mood={entry.mood}>
   <div class="entry-head">
     <span class="entry-index">#{index}</span>
     <h3>{entry.title}</h3>
+    {entry.mood && <span class="entry-mood">{entry.mood}</span>}
   </div>
+  {entry.tags.length > 0 && (
+    <div class="entry-tags">
+      {entry.tags.map((tag) => <span class="entry-tag">{tag}</span>)}
+    </div>
+  )}
   <div class="entry-prose" set:html={entry.html} />
 </article>
 
@@ -22,6 +28,7 @@ const { entry, index } = Astro.props;
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 1.5rem 1.6rem;
+    scroll-margin-top: 5.5rem;
     transition: border-color 0.15s ease, background 0.15s ease;
   }
   .entry:hover {
@@ -51,5 +58,30 @@ const { entry, index } = Astro.props;
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text);
+    unicode-bidi: plaintext;
+  }
+
+  .entry-mood {
+    margin-left: auto;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .entry-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+  }
+  .entry-tag {
+    font-family: var(--font-display);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15em 0.5em;
   }
 </style>

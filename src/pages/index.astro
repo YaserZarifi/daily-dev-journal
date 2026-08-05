@@ -10,12 +10,43 @@ const entries = getEntries();
 const days = groupByDay(entries);
 const weeks = groupByWeek(days);
 const stats = getStats(days);
+
+const oldestEntry = entries.length ? entries[entries.length - 1] : null;
+const allMoods = [...new Set(entries.map((e) => e.mood).filter(Boolean))];
+const allTags = [...new Set(entries.flatMap((e) => e.tags))].sort();
+
 ---
 
 <Layout>
   <Nav />
-  <Hero />
+  <Hero oldestEntrySlug={oldestEntry?.slug} />
   <StatsSection stats={stats} />
+
+  {(allMoods.length > 0 || allTags.length > 0) && (
+    <div class="filter-bar">
+      {allMoods.length > 0 && (
+        <div class="filter-group">
+          <span class="filter-label">Mood</span>
+          <div class="filter-chips">
+            {allMoods.map((mood) => (
+              <button class="chip" data-filter-type="mood" data-filter-value={mood}>{mood}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {allTags.length > 0 && (
+        <div class="filter-group">
+          <span class="filter-label">Tags</span>
+          <div class="filter-chips">
+            {allTags.map((tag) => (
+              <button class="chip" data-filter-type="tag" data-filter-value={tag}>{tag}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      <button id="filter-clear" class="chip chip-clear" hidden>Clear filters ×</button>
+    </div>
+  )}
 
   <main id="log" class="log">
     <div class="section-label">
@@ -29,7 +60,17 @@ const stats = getStats(days);
         <p class="hint">Push a journal entry and merge it into <code>main</code> — this page rebuilds on its own.</p>
       </div>
     ) : (
-      weeks.map((week) => <WeekSection week={week} />)
+      weeks.map((week, i) => (
+        <div class:list={['week-page', { hidden: i >= 1 }]} data-week-page>
+          <WeekSection week={week} />
+        </div>
+      ))
+    )}
+
+    {weeks.length > 1 && (
+      <div class="load-more-wrap">
+        <button id="load-more-btn" class="load-more-btn">Load older weeks ↓</button>
+      </div>
     )}
   </main>
 
@@ -40,6 +81,69 @@ const stats = getStats(days);
     <span>built with Astro · deployed on GitHub Pages</span>
   </footer>
 </Layout>
+
+<script>
+  function revealAllWeeks() {
+    document.querySelectorAll('[data-week-page]').forEach((wp) => wp.classList.remove('hidden'));
+    document.getElementById('load-more-btn')?.remove();
+  }
+
+  document.getElementById('load-more-btn')?.addEventListener('click', revealAllWeeks);
+  document.getElementById('read-from-start')?.addEventListener('click', revealAllWeeks);
+
+  const chips = document.querySelectorAll<HTMLButtonElement>('.chip[data-filter-type]');
+  const clearBtn = document.getElementById('filter-clear');
+  const activeTags = new Set<string>();
+  const activeMoods = new Set<string>();
+
+  function applyFilters() {
+    const filtering = activeTags.size > 0 || activeMoods.size > 0;
+    if (filtering) revealAllWeeks();
+
+    document.querySelectorAll<HTMLElement>('.entry').forEach((entry) => {
+      const tags = (entry.getAttribute('data-tags') || '').split(',').filter(Boolean);
+      const mood = entry.getAttribute('data-mood') || '';
+      const tagMatch = activeTags.size === 0 || tags.some((t) => activeTags.has(t));
+      const moodMatch = activeMoods.size === 0 || activeMoods.has(mood);
+      entry.style.display = tagMatch && moodMatch ? '' : 'none';
+    });
+
+    document.querySelectorAll<HTMLElement>('.day-row').forEach((row) => {
+      const visible = [...row.querySelectorAll<HTMLElement>('.entry')].some((e) => e.style.display !== 'none');
+      row.style.display = visible ? '' : 'none';
+    });
+
+    document.querySelectorAll<HTMLElement>('.week').forEach((week) => {
+      const visible = [...week.querySelectorAll<HTMLElement>('.entry')].some((e) => e.style.display !== 'none');
+      week.style.display = visible ? '' : 'none';
+    });
+
+    if (clearBtn) clearBtn.hidden = !filtering;
+  }
+
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const type = chip.getAttribute('data-filter-type');
+      const value = chip.getAttribute('data-filter-value') ?? '';
+      const set = type === 'tag' ? activeTags : activeMoods;
+      if (set.has(value)) {
+        set.delete(value);
+        chip.classList.remove('active');
+      } else {
+        set.add(value);
+        chip.classList.add('active');
+      }
+      applyFilters();
+    });
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    activeTags.clear();
+    activeMoods.clear();
+    chips.forEach((c) => c.classList.remove('active'));
+    applyFilters();
+  });
+</script>
 
 <style>
   .log {
@@ -96,5 +200,80 @@ const stats = getStats(days);
     color: var(--text-tertiary);
     flex-wrap: wrap;
     gap: 0.75rem;
+  }
+
+  .week-page.hidden {
+    display: none;
+  }
+
+  .load-more-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0 2.5rem;
+  }
+  .load-more-btn {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.65rem 1.4rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .load-more-btn:hover {
+    border-color: var(--border-strong);
+    color: var(--accent);
+  }
+
+  .filter-bar {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+  }
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .chip {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.35em 0.85em;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .chip:hover {
+    border-color: var(--border-strong);
+  }
+  .chip.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+  }
+  .chip-clear {
+    color: var(--text-tertiary);
   }
 </style>
