@@ -3,6 +3,8 @@
 // `Journal-*.txt` / `Daily-Quote-*.txt` files (those are single quote lines,
 // not entries) and the legacy loose files at the repo root.
 
+import commitTimes from '../data/commit-times.json';
+
 export interface Entry {
   path: string;
   slug: string;
@@ -14,6 +16,7 @@ export interface Entry {
   seq: number;
   mood: string;
   tags: string[];
+  commitTime: string; // ISO timestamp from git, e.g. "2026-08-05T00:36:47+04:30"
 }
 
 export interface Day {
@@ -74,6 +77,7 @@ export function getEntries(): Entry[] {
       seq,
       mood: frontmatter.mood ?? '',
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
+      commitTime: (commitTimes as Record<string, string>)[path] ?? '',
     });
   }
 

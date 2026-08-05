@@ -6,12 +6,17 @@ interface Props {
   index: number;
 }
 const { entry, index } = Astro.props;
+
+const exactTime = entry.commitTime
+  ? new Date(entry.commitTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+  : '';
 ---
 
 <article class="entry" id={`entry-${entry.slug}`} data-tags={entry.tags.join(',')} data-mood={entry.mood}>
   <div class="entry-head">
     <span class="entry-index">#{index}</span>
     <h3>{entry.title}</h3>
+    {exactTime && <span class="entry-time" title={entry.commitTime}>{exactTime}</span>}
     {entry.mood && <span class="entry-mood">{entry.mood}</span>}
   </div>
   {entry.tags.length > 0 && (
@@ -61,6 +66,13 @@ const { entry, index } = Astro.props;
     letter-spacing: -0.01em;
     color: var(--text);
     unicode-bidi: plaintext;
+  }
+
+  .entry-time {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
   }
 
   .entry-mood {

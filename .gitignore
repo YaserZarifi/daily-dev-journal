@@ -4,6 +4,9 @@ dist/
 # mirrored by scripts/copy-assets.mjs on every dev/build run — not source
 public/assets/
 
+# generated commit-time lookup — rebuilt from git log every dev/build run
+src/data/commit-times.json
+
 # generated types
 .astro/
 

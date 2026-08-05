@@ -6,9 +6,9 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "predev": "node scripts/copy-assets.mjs",
+    "predev": "node scripts/copy-assets.mjs && node scripts/extract-commit-times.mjs",
     "dev": "astro dev",
-    "prebuild": "node scripts/copy-assets.mjs",
+    "prebuild": "node scripts/copy-assets.mjs && node scripts/extract-commit-times.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"

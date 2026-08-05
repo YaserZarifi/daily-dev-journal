@@ -156,26 +156,28 @@ function level(count: number): string {
 
   .heatmap {
     display: flex;
-    gap: 3px;
+    gap: 4px;
+    width: 100%;
   }
   .heatmap-col {
     display: flex;
+    flex: 1;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
   }
   .heatmap-cell {
-    width: 11px;
-    height: 11px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
     border-radius: 2px;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
   }
   .level-1 {
-    background: var(--accent-soft);
+    background: rgba(242, 184, 75, 0.28);
     border-color: var(--accent-line);
   }
   .level-2 {
-    background: rgba(242, 184, 75, 0.45);
+    background: rgba(242, 184, 75, 0.55);
     border-color: var(--accent-line);
   }
   .level-3 {
