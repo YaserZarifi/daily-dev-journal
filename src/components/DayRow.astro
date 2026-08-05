@@ -24,7 +24,7 @@ function shortHash(input: string): string {
 const hash = shortHash(day.date + day.weekday);
 ---
 
-<div class="day-row">
+<div class="day-row" id={`day-${day.date}`} data-date={day.date}>
   <div class="rail">
     <span class="dot"></span>
     {!isLast && <span class="line"></span>}
@@ -50,6 +50,7 @@ const hash = shortHash(day.date + day.weekday);
     display: grid;
     grid-template-columns: 1.4rem 1fr;
     gap: 1.25rem;
+    scroll-margin-top: 5.5rem;
   }
 
   .rail {

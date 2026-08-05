@@ -23,6 +23,9 @@
   --font-body: 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;;
 
   --max-width: 46rem;
+  --page-max: 88rem;
+  --sidebar-left-w: 236px;
+  --sidebar-right-w: 252px;
   color-scheme: dark;
 }
 
@@ -181,6 +184,24 @@ a:hover {
 
 .entry-prose a {
   text-underline-offset: 2px;
+}
+
+/* -------------------------------------------------- */
+/* Thin scrollbar for sticky sidebars                  */
+/* -------------------------------------------------- */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
 }
 
 /* Scroll-reveal utility, applied via IntersectionObserver in index.astro */

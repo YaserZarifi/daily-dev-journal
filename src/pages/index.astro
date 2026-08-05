@@ -4,6 +4,8 @@ import Nav from '../components/Nav.astro';
 import Hero from '../components/Hero.astro';
 import StatsSection from '../components/StatsSection.astro';
 import WeekSection from '../components/WeekSection.astro';
+import TocNav from '../components/TocNav.astro';
+import BranchRiver from '../components/BranchRiver.astro';
 import { getEntries, groupByDay, groupByWeek, getStats } from '../lib/journal';
 
 const entries = getEntries();
@@ -19,71 +21,58 @@ const allTags = [...new Set(entries.flatMap((e) => e.tags))].sort();
 
 <Layout>
   <Nav />
-  <Hero
-    oldestEntrySlug={oldestEntry?.slug}
-    latestEntryTitle={entries[0]?.title}
-    latestEntryDate={entries[0]?.date}
-  />
-  <StatsSection stats={stats} />
 
-  {(allMoods.length > 0 || allTags.length > 0) && (
-    <div class="filter-bar">
-      {allMoods.length > 0 && (
-        <div class="filter-group">
-          <span class="filter-label">Mood</span>
-          <div class="filter-chips">
-            {allMoods.map((mood) => (
-              <button class="chip" data-filter-type="mood" data-filter-value={mood}>{mood}</button>
-            ))}
+  <div class="page-shell">
+    <aside class="sidebar-left">
+      <TocNav weeks={weeks} allMoods={allMoods} allTags={allTags} />
+    </aside>
+
+    <div class="center-col">
+      <Hero
+        oldestEntrySlug={oldestEntry?.slug}
+        latestEntryTitle={entries[0]?.title}
+        latestEntryDate={entries[0]?.date}
+      />
+      <StatsSection stats={stats} />
+
+      <main id="log" class="log">
+        <div class="section-label">
+          <span class="label">Log</span>
+          <span class="rule"></span>
+        </div>
+
+        {weeks.length === 0 ? (
+          <div class="empty">
+            <p><span class="prompt-sign">$</span> No entries found yet.</p>
+            <p class="hint">Push a journal entry and merge it into <code>main</code> — this page rebuilds on its own.</p>
           </div>
-        </div>
-      )}
-      {allTags.length > 0 && (
-        <div class="filter-group">
-          <span class="filter-label">Tags</span>
-          <div class="filter-chips">
-            {allTags.map((tag) => (
-              <button class="chip" data-filter-type="tag" data-filter-value={tag}>{tag}</button>
-            ))}
+        ) : (
+          weeks.map((week, i) => (
+            <div class:list={['week-page', { hidden: i >= 1 }]} data-week-page>
+              <WeekSection week={week} />
+            </div>
+          ))
+        )}
+
+        {weeks.length > 1 && (
+          <div class="load-more-wrap">
+            <button id="load-more-btn" class="load-more-btn">Load older weeks ↓</button>
           </div>
-        </div>
-      )}
-      <button id="filter-clear" class="chip chip-clear" hidden>Clear filters ×</button>
+        )}
+      </main>
+
+      <footer class="site-footer">
+        <a href="https://github.com/YaserZarifi/daily-dev-journal" target="_blank" rel="noopener noreferrer">
+          view source →
+        </a>
+        <span>built with Astro · deployed on GitHub Pages</span>
+      </footer>
     </div>
-  )}
 
-  <main id="log" class="log">
-    <div class="section-label">
-      <span class="label">Log</span>
-      <span class="rule"></span>
-    </div>
-
-    {weeks.length === 0 ? (
-      <div class="empty">
-        <p><span class="prompt-sign">$</span> No entries found yet.</p>
-        <p class="hint">Push a journal entry and merge it into <code>main</code> — this page rebuilds on its own.</p>
-      </div>
-    ) : (
-      weeks.map((week, i) => (
-        <div class:list={['week-page', { hidden: i >= 1 }]} data-week-page>
-          <WeekSection week={week} />
-        </div>
-      ))
-    )}
-
-    {weeks.length > 1 && (
-      <div class="load-more-wrap">
-        <button id="load-more-btn" class="load-more-btn">Load older weeks ↓</button>
-      </div>
-    )}
-  </main>
-
-  <footer class="site-footer">
-    <a href="https://github.com/YaserZarifi/daily-dev-journal" target="_blank" rel="noopener noreferrer">
-      view source →
-    </a>
-    <span>built with Astro · deployed on GitHub Pages</span>
-  </footer>
+    <aside class="sidebar-right">
+      <BranchRiver days={days} stats={stats} />
+    </aside>
+  </div>
 </Layout>
 
 <script>
@@ -147,9 +136,81 @@ const allTags = [...new Set(entries.flatMap((e) => e.tags))].sort();
     chips.forEach((c) => c.classList.remove('active'));
     applyFilters();
   });
+
+  // Sidebar jump links (TOC + commit river): reveal hidden weeks first, then
+  // smooth-scroll, since the target day-row may still be behind "Load older weeks".
+  const scrollLinks = document.querySelectorAll<HTMLAnchorElement>('[data-scroll-target]');
+  scrollLinks.forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      revealAllWeeks();
+      const date = link.dataset.scrollTarget;
+      const target = document.getElementById(`day-${date}`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Scrollspy: highlight the day currently in view in both sidebars.
+  const dayRows = document.querySelectorAll<HTMLElement>('.day-row[data-date]');
+  if (dayRows.length && 'IntersectionObserver' in window) {
+    const spy = new IntersectionObserver(
+      (observed) => {
+        observed.forEach((obs) => {
+          if (!obs.isIntersecting) return;
+          const date = (obs.target as HTMLElement).dataset.date;
+          scrollLinks.forEach((link) => {
+            link.classList.toggle('active', link.dataset.scrollTarget === date);
+          });
+        });
+      },
+      { rootMargin: '-35% 0px -55% 0px', threshold: 0 }
+    );
+    dayRows.forEach((row) => spy.observe(row));
+  }
 </script>
 
 <style>
+  .page-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-left-w) minmax(0, 1fr) var(--sidebar-right-w);
+    gap: 0 2.5rem;
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: 0 2rem;
+    align-items: stretch;
+  }
+
+  .sidebar-left {
+    grid-column: 1;
+  }
+  .center-col {
+    grid-column: 2;
+    min-width: 0;
+  }
+  .sidebar-right {
+    grid-column: 3;
+  }
+
+  @media (max-width: 1180px) {
+    .page-shell {
+      grid-template-columns: 1fr;
+      padding: 0;
+    }
+    .sidebar-left,
+    .center-col,
+    .sidebar-right {
+      grid-column: 1;
+    }
+    .sidebar-right {
+      display: none;
+    }
+    .sidebar-left :global(.toc) {
+      position: static;
+      max-height: none;
+      padding: 1.5rem 1.5rem 2rem;
+    }
+  }
+
   .log {
     max-width: var(--max-width);
     margin: 0 auto;
@@ -229,55 +290,5 @@ const allTags = [...new Set(entries.flatMap((e) => e.tags))].sort();
   .load-more-btn:hover {
     border-color: var(--border-strong);
     color: var(--accent);
-  }
-
-  .filter-bar {
-    max-width: var(--max-width);
-    margin: 0 auto;
-    padding: 0 1.5rem 2rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 1.5rem;
-  }
-  .filter-group {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-  }
-  .filter-label {
-    font-family: var(--font-display);
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-tertiary);
-  }
-  .filter-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  .chip {
-    font-family: var(--font-display);
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 0.35em 0.85em;
-    cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
-  }
-  .chip:hover {
-    border-color: var(--border-strong);
-  }
-  .chip.active {
-    color: var(--accent);
-    background: var(--accent-soft);
-    border-color: var(--accent-line);
-  }
-  .chip-clear {
-    color: var(--text-tertiary);
   }
 </style>

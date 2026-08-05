@@ -1,0 +1,206 @@
+---
+import type { Week } from '../lib/journal';
+
+interface Props {
+  weeks: Week[];
+  allMoods: string[];
+  allTags: string[];
+}
+const { weeks, allMoods, allTags } = Astro.props;
+---
+
+<nav class="toc thin-scroll" aria-label="Journal navigation">
+  <div class="toc-section">
+    <span class="toc-label">Jump to</span>
+    <ul class="toc-weeks">
+      {weeks.map((week) => {
+        const [year, wk] = week.week.split('-W');
+        return (
+          <li class="toc-week">
+            <span class="toc-week-label">week/{wk}<span class="toc-week-year">·{year}</span></span>
+            <ul class="toc-days">
+              {week.days.map((day) => {
+                const formatted = new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                });
+                return (
+                  <li>
+                    <a href={`#day-${day.date}`} class="toc-day-link" data-scroll-target={day.date}>
+                      <span class="toc-dot"></span>
+                      {formatted}
+                      <span class="toc-count">{day.entries.length}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+
+  {(allMoods.length > 0 || allTags.length > 0) && (
+    <div class="toc-section">
+      <span class="toc-label">Filter</span>
+      {allMoods.length > 0 && (
+        <div class="filter-group">
+          <span class="filter-sublabel">Mood</span>
+          <div class="filter-chips">
+            {allMoods.map((mood) => (
+              <button class="chip" data-filter-type="mood" data-filter-value={mood}>{mood}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {allTags.length > 0 && (
+        <div class="filter-group">
+          <span class="filter-sublabel">Tags</span>
+          <div class="filter-chips">
+            {allTags.map((tag) => (
+              <button class="chip" data-filter-type="tag" data-filter-value={tag}>{tag}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      <button id="filter-clear" class="chip chip-clear" hidden>Clear filters ×</button>
+    </div>
+  )}
+</nav>
+
+<style>
+  .toc {
+    position: sticky;
+    top: 4.75rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+    padding: 1.75rem 0.25rem 2rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .toc-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .toc-label {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+  }
+
+  .toc-weeks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .toc-week-label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    color: var(--branch);
+    margin-bottom: 0.4rem;
+  }
+  .toc-week-year {
+    color: var(--text-tertiary);
+    margin-left: 0.25rem;
+    font-size: 0.65rem;
+  }
+
+  .toc-days {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 0.1rem;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .toc-day-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0 0.35rem 0.75rem;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: color 0.15s ease;
+  }
+  .toc-day-link:hover {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .toc-day-link.active {
+    color: var(--accent);
+  }
+  .toc-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    flex-shrink: 0;
+  }
+  .toc-day-link.active .toc-dot {
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .toc-count {
+    margin-left: auto;
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  .filter-sublabel {
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+  }
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .chip {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.3em 0.75em;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .chip:hover {
+    border-color: var(--border-strong);
+  }
+  .chip.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+  }
+  .chip-clear {
+    color: var(--text-tertiary);
+    margin-top: 0.25rem;
+  }
+</style>
