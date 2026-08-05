@@ -1,13 +1,261 @@
 ---
+interface SearchDoc {
+  slug: string;
+  title: string;
+  date: string;
+  mood: string;
+  tags: string[];
+  text: string;
+}
+
+interface Props {
+  searchIndex: SearchDoc[];
+}
+
+const { searchIndex } = Astro.props;
 ---
 
 <nav class="site-nav">
   <span class="wordmark">daily-dev-journal</span>
+  <div class="nav-search">
+    <input
+      type="text"
+      id="search-input"
+      class="search-input"
+      placeholder="Search entries…"
+      autocomplete="off"
+      aria-label="Search journal entries"
+    />
+    <div id="search-results" class="search-results" hidden></div>
+  </div>
   <div class="links">
     <a href="#overview">Overview</a>
     <a href="#log">Log</a>
   </div>
 </nav>
+
+<div id="entry-modal-backdrop" class="entry-modal-backdrop" hidden>
+  <div id="entry-modal" class="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
+    <button type="button" id="entry-modal-close" class="entry-modal-close" aria-label="Close">✕</button>
+    <div class="entry-modal-head">
+      <div class="entry-modal-headrow">
+        <h2 id="entry-modal-title" class="entry-modal-title"></h2>
+        <span id="entry-modal-mood" class="entry-modal-mood"></span>
+      </div>
+      <div class="entry-modal-meta">
+        <span id="entry-modal-date"></span>
+      </div>
+      <div id="entry-modal-tags" class="entry-modal-tags"></div>
+    </div>
+    <div id="entry-modal-body" class="entry-modal-body entry-prose"></div>
+    <a href="#" id="entry-modal-jump" class="entry-modal-jump">Jump to entry in log ↓</a>
+  </div>
+</div>
+
+<script type="application/json" id="search-data" set:html={JSON.stringify(searchIndex)} />
+
+<script>
+  interface SearchDoc {
+    slug: string;
+    title: string;
+    date: string;
+    mood: string;
+    tags: string[];
+    text: string;
+  }
+
+  const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+  const resultsBox = document.getElementById('search-results') as HTMLElement | null;
+  const dataEl = document.getElementById('search-data');
+  const docs: SearchDoc[] = dataEl?.textContent ? JSON.parse(dataEl.textContent) : [];
+
+  const modalBackdrop = document.getElementById('entry-modal-backdrop') as HTMLElement | null;
+  const modalPanel = document.getElementById('entry-modal') as HTMLElement | null;
+  const modalClose = document.getElementById('entry-modal-close') as HTMLButtonElement | null;
+  const modalTitle = document.getElementById('entry-modal-title') as HTMLElement | null;
+  const modalMood = document.getElementById('entry-modal-mood') as HTMLElement | null;
+  const modalDate = document.getElementById('entry-modal-date') as HTMLElement | null;
+  const modalTags = document.getElementById('entry-modal-tags') as HTMLElement | null;
+  const modalBody = document.getElementById('entry-modal-body') as HTMLElement | null;
+  const modalJump = document.getElementById('entry-modal-jump') as HTMLAnchorElement | null;
+  let modalSlug = '';
+
+  function formatDate(dateStr: string): string {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+
+  function closeModal() {
+    if (!modalBackdrop) return;
+    modalBackdrop.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  function openEntryModal(doc: SearchDoc) {
+    if (!modalBackdrop) return;
+    const entryEl = document.getElementById(`entry-${doc.slug}`);
+    const proseHtml = entryEl?.querySelector('.entry-prose')?.innerHTML ?? '<p>Content unavailable.</p>';
+
+    if (modalTitle) modalTitle.textContent = doc.title;
+    if (modalMood) {
+      modalMood.textContent = doc.mood;
+      modalMood.hidden = !doc.mood;
+    }
+    if (modalDate) modalDate.textContent = formatDate(doc.date);
+    if (modalTags) {
+      modalTags.innerHTML = doc.tags.map((tag) => `<span class="modal-tag">${escapeHtml(tag)}</span>`).join('');
+    }
+    if (modalBody) modalBody.innerHTML = proseHtml;
+    modalSlug = doc.slug;
+
+    modalBackdrop.hidden = false;
+    document.body.style.overflow = 'hidden';
+    modalPanel?.scrollTo(0, 0);
+  }
+
+  function escapeHtml(str: string): string {
+    return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+  }
+
+  // Substring matches score highest (earlier in the string = better); falls
+  // back to an in-order subsequence match for typo tolerance. The fallback is
+  // only applied to short fields (title/tags/mood) — against the full entry
+  // body it's almost always trivially satisfiable (any short/garbage query
+  // can find its letters somewhere across hundreds of characters), which
+  // flooded results with irrelevant entries.
+  function fuzzyScore(text: string, query: string, allowFuzzy: boolean): number {
+    if (!text || !query) return 0;
+    const t = text.toLowerCase();
+    const q = query.toLowerCase();
+    const idx = t.indexOf(q);
+    if (idx !== -1) return 100 - Math.min(idx, 20);
+    if (!allowFuzzy) return 0;
+    let ti = 0;
+    let qi = 0;
+    let gaps = 0;
+    while (ti < t.length && qi < q.length) {
+      if (t[ti] === q[qi]) qi++;
+      else gaps++;
+      ti++;
+    }
+    return qi === q.length ? Math.max(1, 30 - gaps) : 0;
+  }
+
+  function scoreDoc(doc: SearchDoc, query: string): number {
+    return (
+      fuzzyScore(doc.title, query, true) * 4 +
+      fuzzyScore(doc.tags.join(' '), query, true) * 2 +
+      fuzzyScore(doc.mood, query, true) * 2 +
+      fuzzyScore(doc.text, query, false)
+    );
+  }
+
+  function excerptFor(doc: SearchDoc, query: string): string {
+    const t = doc.text || '';
+    const idx = t.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return t.slice(0, 90) + (t.length > 90 ? '…' : '');
+    const start = Math.max(0, idx - 30);
+    const end = Math.min(t.length, idx + query.length + 50);
+    return (start > 0 ? '…' : '') + t.slice(start, end) + (end < t.length ? '…' : '');
+  }
+
+  function goToEntry(slug: string) {
+    document.querySelectorAll('[data-week-page]').forEach((wp) => wp.classList.remove('hidden'));
+    document.getElementById('load-more-btn')?.remove();
+    const target = document.getElementById(`entry-${slug}`);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target?.classList.add('search-highlight');
+    setTimeout(() => target?.classList.remove('search-highlight'), 1600);
+  }
+
+  function renderResults(matches: { doc: SearchDoc }[], query: string) {
+    if (!resultsBox) return;
+    if (matches.length === 0) {
+      resultsBox.innerHTML = `<div class="search-empty">No entries match "${escapeHtml(query)}"</div>`;
+      resultsBox.hidden = false;
+      return;
+    }
+    resultsBox.innerHTML = matches
+      .map(({ doc }) => {
+        const tagsHtml = doc.tags
+          .slice(0, 3)
+          .map((tag) => `<span class="search-result-tag">${escapeHtml(tag)}</span>`)
+          .join('');
+        return `
+        <button type="button" class="search-result" data-slug="${escapeHtml(doc.slug)}">
+          <span class="search-result-row">
+            <span class="search-result-title">${escapeHtml(doc.title)}</span>
+            ${doc.mood ? `<span class="search-result-mood">${escapeHtml(doc.mood)}</span>` : ''}
+          </span>
+          <span class="search-result-meta">${escapeHtml(formatDate(doc.date))}</span>
+          <span class="search-result-excerpt">${escapeHtml(excerptFor(doc, query))}</span>
+          ${tagsHtml ? `<span class="search-result-tags">${tagsHtml}</span>` : ''}
+        </button>`;
+      })
+      .join('');
+    resultsBox.hidden = false;
+    resultsBox.querySelectorAll<HTMLButtonElement>('.search-result').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const slug = btn.getAttribute('data-slug');
+        const doc = docs.find((d) => d.slug === slug);
+        if (doc) openEntryModal(doc);
+        if (resultsBox) resultsBox.hidden = true;
+        if (searchInput) searchInput.value = '';
+      });
+    });
+  }
+
+  searchInput?.addEventListener('input', () => {
+    const query = searchInput.value.trim();
+    if (!resultsBox) return;
+    if (!query) {
+      resultsBox.hidden = true;
+      resultsBox.innerHTML = '';
+      return;
+    }
+    const matches = docs
+      .map((doc) => ({ doc, score: scoreDoc(doc, query) }))
+      .filter((m) => m.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
+    renderResults(matches, query);
+  });
+
+  searchInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchInput.blur();
+      if (resultsBox) resultsBox.hidden = true;
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!resultsBox || resultsBox.hidden) return;
+    const target = e.target as Node;
+    if (!resultsBox.contains(target) && target !== searchInput) {
+      resultsBox.hidden = true;
+    }
+  });
+
+  modalClose?.addEventListener('click', closeModal);
+
+  modalBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalBackdrop) closeModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalBackdrop && !modalBackdrop.hidden) closeModal();
+  });
+
+  modalJump?.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeModal();
+    if (modalSlug) goToEntry(modalSlug);
+  });
+</script>
 
 <style>
   .site-nav {
@@ -43,5 +291,155 @@
   .links a:hover {
     color: var(--accent);
     text-decoration: none;
+  }
+
+  .nav-search {
+    position: relative;
+    flex: 1;
+    max-width: 28rem;
+    margin: 0 1.5rem;
+  }
+  .search-input {
+    width: 100%;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+  }
+  .search-input:focus {
+    outline: none;
+    border-color: var(--accent-line);
+  }
+  .search-input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  .search-results {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 0.35rem;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    z-index: 30;
+  }
+
+  @media (max-width: 720px) {
+    .nav-search {
+      display: none;
+    }
+  }
+
+  .entry-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 4vh 1.5rem;
+    background: rgba(6, 8, 11, 0.72);
+    backdrop-filter: blur(6px);
+  }
+  .entry-modal-backdrop:not([hidden]) {
+    display: flex;
+  }
+
+  .entry-modal {
+    position: relative;
+    width: 100%;
+    max-width: 42rem;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    padding: 2rem 2.2rem 2.2rem;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+    animation: modal-in 0.18s ease;
+  }
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .entry-modal-close {
+    position: absolute;
+    top: 1.1rem;
+    right: 1.1rem;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .entry-modal-close:hover {
+    color: var(--accent);
+    border-color: var(--border-strong);
+  }
+
+  .entry-modal-head {
+    padding-right: 2.5rem;
+    margin-bottom: 1.4rem;
+  }
+  .entry-modal-headrow {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+  .entry-modal-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    unicode-bidi: plaintext;
+  }
+  .entry-modal-mood {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .entry-modal-meta {
+    margin-top: 0.4rem;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+  }
+  .entry-modal-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+  }
+
+  .entry-modal-jump {
+    display: inline-block;
+    margin-top: 1.8rem;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    color: var(--accent);
+  }
+  .entry-modal-jump:hover {
+    text-decoration: underline;
   }
 </style>

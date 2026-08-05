@@ -16,6 +16,7 @@ export interface Entry {
   seq: number;
   mood: string;
   tags: string[];
+  text: string; // plain text (HTML stripped) used for client-side search indexing
   commitTime: string; // ISO timestamp from git, e.g. "2026-08-05T00:36:47+04:30"
 }
 
@@ -65,6 +66,13 @@ export function getEntries(): Entry[] {
     const seqMatch = filename.match(SEQ_RE);
     const seq = seqMatch ? parseInt(seqMatch[1], 10) : 0;
     const frontmatter = mod.frontmatter ?? {};
+    const text = raw
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[#>*_`~-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
     entries.push({
       path,
@@ -77,6 +85,7 @@ export function getEntries(): Entry[] {
       seq,
       mood: frontmatter.mood ?? '',
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
+      text,
       commitTime: (commitTimes as Record<string, string>)[path] ?? '',
     });
   }
@@ -112,6 +121,22 @@ export function groupByWeek(days: Day[]): Week[] {
     .sort((a, b) => b.week.localeCompare(a.week));
 }
 
+export interface HeatmapCell {
+  date: string;
+  count: number;
+}
+
+export interface HeatmapWeek {
+  cells: (HeatmapCell | null)[]; // null = padding day outside the displayed range
+}
+
+export interface YearHeatmap {
+  id: string; // "last365" or a calendar year like "2026"
+  label: string; // display label for the toggle button
+  weeks: HeatmapWeek[];
+  monthLabels: { weekIndex: number; label: string }[];
+}
+
 export interface Stats {
   totalEntries: number;
   totalDays: number;
@@ -120,7 +145,7 @@ export interface Stats {
   longestStreak: number;
   avgPerActiveDay: number;
   mostActiveWeekday: string;
-  heatmap: { date: string; count: number }[];
+  heatmapViews: YearHeatmap[]; // [0] is "Last 365 days", followed by one per calendar year (newest first)
 }
 
 function addDays(dateStr: string, delta: number): string {
@@ -131,6 +156,52 @@ function addDays(dateStr: string, delta: number): string {
   const d = new Date(dateStr + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() + delta);
   return d.toISOString().slice(0, 10);
+}
+
+// Builds a GitHub-style calendar grid (Sunday-first columns of 7) covering
+// [rangeStart, rangeEnd] inclusive, padded out to full weeks with null cells
+// so the grid always renders as complete columns.
+function buildYearHeatmap(
+  id: string,
+  label: string,
+  rangeStart: string,
+  rangeEnd: string,
+  countByDate: Map<string, number>
+): YearHeatmap {
+  const gridStart = new Date(rangeStart + 'T00:00:00Z');
+  gridStart.setUTCDate(gridStart.getUTCDate() - gridStart.getUTCDay());
+  const gridEnd = new Date(rangeEnd + 'T00:00:00Z');
+  gridEnd.setUTCDate(gridEnd.getUTCDate() + (6 - gridEnd.getUTCDay()));
+
+  const weeks: HeatmapWeek[] = [];
+  const monthLabels: { weekIndex: number; label: string }[] = [];
+  let lastMonth = -1;
+  const cursor = new Date(gridStart);
+  let weekIndex = 0;
+
+  while (cursor <= gridEnd) {
+    const cells: (HeatmapCell | null)[] = [];
+    for (let i = 0; i < 7; i++) {
+      const iso = cursor.toISOString().slice(0, 10);
+      if (iso >= rangeStart && iso <= rangeEnd) {
+        if (cursor.getUTCDate() === 1 && cursor.getUTCMonth() !== lastMonth) {
+          lastMonth = cursor.getUTCMonth();
+          monthLabels.push({
+            weekIndex,
+            label: cursor.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }),
+          });
+        }
+        cells.push({ date: iso, count: countByDate.get(iso) ?? 0 });
+      } else {
+        cells.push(null);
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    weeks.push({ cells });
+    weekIndex++;
+  }
+
+  return { id, label, weeks, monthLabels };
 }
 
 export function getStats(days: Day[]): Stats {
@@ -174,12 +245,14 @@ export function getStats(days: Day[]): Stats {
     [...weekdayCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
 
   const endDate = sorted.length ? sorted[sorted.length - 1].date : new Date().toISOString().slice(0, 10);
-  const heatmap: { date: string; count: number }[] = [];
-  for (let i = 83; i >= 0; i--) {
-    const date = addDays(endDate, -i);
-    const day = days.find((d) => d.date === date);
-    heatmap.push({ date, count: day ? day.entries.length : 0 });
-  }
+  const countByDate = new Map(days.map((d) => [d.date, d.entries.length]));
+
+  const heatmapLast365 = buildYearHeatmap('last365', 'Last 365 days', addDays(endDate, -364), endDate, countByDate);
+
+  const years = [...new Set(days.map((d) => d.date.slice(0, 4)))].sort().reverse();
+  const heatmapYears = years.map((year) =>
+    buildYearHeatmap(year, year, `${year}-01-01`, `${year}-12-31`, countByDate)
+  );
 
   return {
     totalEntries,
@@ -189,6 +262,6 @@ export function getStats(days: Day[]): Stats {
     longestStreak,
     avgPerActiveDay,
     mostActiveWeekday,
-    heatmap,
+    heatmapViews: [heatmapLast365, ...heatmapYears],
   };
 }

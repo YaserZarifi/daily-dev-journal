@@ -16,11 +16,19 @@ const stats = getStats(days);
 const oldestEntry = entries.length ? entries[entries.length - 1] : null;
 const allMoods = [...new Set(entries.map((e) => e.mood).filter(Boolean))];
 const allTags = [...new Set(entries.flatMap((e) => e.tags))].sort();
+const searchIndex = entries.map((e) => ({
+  slug: e.slug,
+  title: e.title,
+  date: e.date,
+  mood: e.mood,
+  tags: e.tags,
+  text: e.text,
+}));
 
 ---
 
 <Layout>
-  <Nav />
+  <Nav searchIndex={searchIndex} />
 
   <div class="page-shell">
     <aside class="sidebar-left">

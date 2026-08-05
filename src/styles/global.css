@@ -187,6 +187,98 @@ a:hover {
 }
 
 /* -------------------------------------------------- */
+/* Search results + entry modal — content injected via  */
+/* JS innerHTML, so scoped Astro <style> can't reach it  */
+/* -------------------------------------------------- */
+.search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.15s ease;
+}
+.search-result:hover,
+.search-result:focus-visible {
+  background: var(--surface-hover);
+  outline: none;
+}
+.search-result-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.search-result-title {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-result-mood {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.search-result-meta {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+}
+.search-result-excerpt {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.search-result-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.1rem;
+}
+.search-result-tag {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+}
+.search-empty {
+  padding: 0.9rem 1rem;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.modal-tag {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15em 0.5em;
+}
+
+/* -------------------------------------------------- */
 /* Thin scrollbar for sticky sidebars                  */
 /* -------------------------------------------------- */
 .thin-scroll {

@@ -43,6 +43,19 @@ const exactTime = entry.commitTime
     background: var(--surface-hover);
   }
 
+  .entry.search-highlight {
+    border-left-color: var(--accent);
+    animation: search-flash 1.6s ease;
+  }
+  @keyframes search-flash {
+    0% {
+      background: var(--accent-soft);
+    }
+    100% {
+      background: var(--surface);
+    }
+  }
+
   .entry-head {
     display: flex;
     align-items: baseline;
