@@ -1,3 +1,7 @@
 # 2026-W32
 
-_No entries yet this week._
+| Date | Entries |
+|------|---------|
+| 2026-08-09 | 1 |
+
+**Total this week:** 1
