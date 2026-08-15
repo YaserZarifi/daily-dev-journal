@@ -1,0 +1,7 @@
+This week was a rollercoaster of emotions, with moments of frustration, contentment, and happiness. The journey began with feelings of overwhelm and frustration with coding projects, particularly with automation tasks, but a short break helped to recharge and gain a fresh perspective. A significant milestone was achieved with the successful development of an engine leveraging FFmpeg and local AI to convert videos into short, vertical chunks for YouTube Shorts and Reels. 
+
+The week also saw a focus on project development, with efforts to modify and improve the shorts factory and Facebook automation reels posting. Planning and coding continued, with the goal of creating a shorts grabber APK to install on a tablet and post shorts from YouTube to TikTok. 
+
+Notable moments included the creation of a worker bot that could upload shorts directly from Telegram to YouTube, allowing for a hands-off approach for two months. Additionally, work on Facebook reels resulted in impressive outcomes, despite initial challenges with distribution via Graph API. 
+
+Recurring topics included coding, project development, and milestones, highlighting a strong focus on technical progress. Through the ups and downs, resilience and determination shone through, with a willingness to learn from setbacks and celebrate successes. Overall, it was a productive week with significant advancements in various projects.
