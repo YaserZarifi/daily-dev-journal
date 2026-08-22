@@ -1,8 +1,3 @@
 # 2026-W34
 
-| Date | Entries |
-|------|---------|
-| 2026-08-18 | 1 |
-| 2026-08-19 | 1 |
-
-**Total this week:** 2
+_No entries yet this week._
