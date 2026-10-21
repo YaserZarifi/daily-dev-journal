@@ -1,0 +1,1 @@
+"The best way to get good ideas is to get a lot of ideas." - Linus Torvalds
