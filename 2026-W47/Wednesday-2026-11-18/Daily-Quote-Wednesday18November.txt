@@ -1,0 +1,1 @@
+"Innovation is the lifeblood of progress, and the future belongs to those who dare to dream, design, and deliver it." - Steve Jobs
